@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dapper — Mapeo de Capacidad</title>
+<style>
+  :root {
+    --purple: #6C2BD9;
+    --purple-light: #EDE9FF;
+    --purple-dark: #4A1D96;
+    --green: #10B981;
+    --red: #EF4444;
+    --gray: #6B7280;
+    --gray-light: #F3F4F6;
+    --border: #E5E7EB;
+    --text: #111827;
+    --text-soft: #6B7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #F9FAFB; color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--purple); padding: 18px 24px; display: flex; align-items: center; gap: 12px; }
+  header img { width: 32px; height: 32px; }
+  header h1 { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  header span { color: rgba(255,255,255,0.65); font-size: 14px; margin-left: 4px; }
+
+  /* SCREENS */
+  .screen { display: none; padding: 24px 20px; max-width: 680px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* SCREEN 1 — SELECT LEADER */
+  .intro-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .intro-sub { color: var(--text-soft); font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+  .leader-grid { display: flex; flex-direction: column; gap: 12px; }
+  .leader-card {
+    background: #fff; border: 2px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .leader-card:hover { border-color: var(--purple); box-shadow: 0 2px 8px rgba(108,43,217,.12); }
+  .leader-card .lc-left {}
+  .leader-card .lc-team { font-size: 13px; font-weight: 700; color: var(--purple); text-transform: uppercase; letter-spacing: .5px; }
+  .leader-card .lc-name { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .leader-card .lc-count { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
+  .leader-card .lc-badge { background: var(--purple-light); color: var(--purple); font-size: 12px; font-weight: 700; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+  .leader-card.done { border-color: var(--green); }
+  .leader-card.done .lc-badge { background: #D1FAE5; color: var(--green); }
+
+  /* SCREEN 2 — TEAM LIST */
+  .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--purple); font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 20px; background: none; border: none; }
+  .team-header { margin-bottom: 20px; }
+  .team-header h2 { font-size: 20px; font-weight: 700; }
+  .team-header p { color: var(--text-soft); font-size: 14px; margin-top: 4px; }
+  .progress-bar-wrap { background: var(--border); border-radius: 99px; height: 8px; margin: 12px 0 20px; }
+  .progress-bar-fill { background: var(--purple); border-radius: 99px; height: 8px; transition: width .3s; }
+  .person-list { display: flex; flex-direction: column; gap: 10px; }
+  .person-item {
+    background: #fff; border: 2px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    transition: border-color .15s;
+  }
+  .person-item:hover { border-color: var(--purple); }
+  .person-item.done { border-color: var(--green); }
+  .person-item .pi-name { font-size: 15px; font-weight: 600; }
+  .person-item .pi-status { font-size: 12px; font-weight: 700; border-radius: 20px; padding: 3px 10px; }
+  .person-item .pi-status.pending { background: var(--gray-light); color: var(--gray); }
+  .person-item .pi-status.done { background: #D1FAE5; color: var(--green); }
+
+  /* SCREEN 3 — PERSON FORM */
+  .form-header { margin-bottom: 20px; }
+  .form-header h2 { font-size: 20px; font-weight: 700; }
+  .form-header p { color: var(--text-soft); font-size: 13px; margin-top: 3px; }
+  .section-label { font-size: 13px; font-weight: 700; color: var(--purple); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; margin-top: 24px; }
+  .activity-block {
+    background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-bottom: 12px; position: relative;
+  }
+  .activity-block .act-num { font-size: 11px; font-weight: 700; color: var(--text-soft); text-transform: uppercase; margin-bottom: 10px; }
+  .remove-act { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--gray); cursor: pointer; font-size: 18px; line-height: 1; }
+  .remove-act:hover { color: var(--red); }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #374151; }
+  input[type=text], select, textarea {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; font-size: 14px; font-family: inherit; color: var(--text);
+    background: #fff; transition: border-color .15s;
+  }
+  input[type=text]:focus, select:focus, textarea:focus { outline: none; border-color: var(--purple); }
+  textarea { resize: vertical; min-height: 70px; }
+  .field-group { margin-bottom: 12px; }
+  .custom-cat { margin-top: 8px; display: none; }
+
+  /* SLIDER */
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--purple); }
+  .slider-val { font-size: 15px; font-weight: 700; color: var(--purple); width: 42px; text-align: right; }
+  .pct-sum {
+    background: var(--gray-light); border-radius: 8px; padding: 10px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 4px 0 16px; font-size: 14px;
+  }
+  .pct-sum .sum-label { color: var(--text-soft); }
+  .pct-sum .sum-val { font-weight: 700; }
+  .pct-sum.ok .sum-val { color: var(--green); }
+  .pct-sum.error .sum-val { color: var(--red); }
+
+  .add-act-btn {
+    width: 100%; border: 2px dashed var(--border); background: #fff; border-radius: 10px;
+    padding: 12px; color: var(--purple); font-size: 14px; font-weight: 600; cursor: pointer;
+    margin-bottom: 20px; transition: border-color .15s;
+  }
+  .add-act-btn:hover { border-color: var(--purple); }
+
+  .qualitative { background: #fff; border: 1.5px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+  .qualitative .q-item { margin-bottom: 16px; }
+  .qualitative .q-item:last-child { margin-bottom: 0; }
+  .qualitative .q-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+  .qualitative .q-hint { font-size: 12px; color: var(--text-soft); margin-bottom: 6px; }
+
+  .save-btn {
+    width: 100%; background: var(--purple); color: #fff; border: none; border-radius: 10px;
+    padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .15s;
+    margin-bottom: 30px;
+  }
+  .save-btn:hover { background: var(--purple-dark); }
+  .save-btn:disabled { background: #C4B5FD; cursor: not-allowed; }
+
+  /* CONFIRMATION */
+  .confirm-screen { text-align: center; padding: 60px 20px; }
+  .confirm-icon { font-size: 56px; margin-bottom: 16px; }
+  .confirm-screen h2 { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  .confirm-screen p { color: var(--text-soft); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
+  .confirm-screen button {
+    background: var(--purple); color: #fff; border: none; border-radius: 10px;
+    padding: 12px 28px; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1F2937; color: #fff; padding: 12px 20px; border-radius: 10px;
+    font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .3s;
+    pointer-events: none; z-index: 999; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="white" fill-opacity="0.15"/><text x="16" y="22" text-anchor="middle" font-size="16" font-weight="800" fill="white">D</text></svg>
+  <h1>Dapper <span>— Mapeo de Capacidad Individual</span></h1>
+</header>
+
+<!-- SCREEN 1: SELECT LEADER -->
+<div id="screen-leaders" class="screen active">
+  <div style="margin-top:24px">
+    <p class="intro-title">Selecciona tu equipo</p>
+    <p class="intro-sub">Cada líder evalúa únicamente las personas de su área. Los datos se guardan en tiempo real y son visibles solo para el equipo directivo de Dapper.</p>
+    <div class="leader-grid" id="leaderGrid"></div>
+  </div>
+</div>
+
+<!-- SCREEN 2: TEAM MEMBERS -->
+<div id="screen-team" class="screen">
+  <button class="back-btn" onclick="goTo('leaders')">← Volver</button>
+  <div class="team-header">
+    <h2 id="teamTitle"></h2>
+    <p id="teamSubtitle"></p>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+  <p style="font-size:13px;color:var(--text-soft);margin-bottom:16px;" id="progressLabel"></p>
+  <div class="person-list" id="personList"></div>
+</div>
+
+<!-- SCREEN 3: PERSON FORM -->
+<div id="screen-form" class="screen">
+  <button class="back-btn" onclick="goTo('team')">← Volver al equipo</button>
+  <div class="form-header">
+    <h2 id="formPersonName"></h2>
+    <p id="formTeamName"></p>
+  </div>
+
+  <p class="section-label">Actividades (3 a 5)</p>
+  <div id="activitiesContainer"></div>
+
+  <div id="pctSumBox" class="pct-sum">
+    <span class="sum-label">Total de dedicación:</span>
+    <span class="sum-val" id="pctSumVal">0%</span>
+  </div>
+
+  <button class="add-act-btn" id="addActBtn" onclick="addActivity()">+ Agregar actividad</button>
+
+  <p class="section-label">Preguntas estratégicas</p>
+  <div class="qualitative">
+    <div class="q-item">
+      <p class="q-label">1. ¿Qué genera menos valor en el trabajo de esta persona?</p>
+      <p class="q-hint">Tareas rutinarias, reportes que nadie lee, reuniones sin decisión, etc.</p>
+      <textarea id="q1" placeholder="Describe brevemente..."></textarea>
+    </div>
+    <div class="q-item">
+      <p class="q-label">2. ¿Qué podría automatizarse o tercerizarse?</p>
+      <p class="q-hint">Procesos repetitivos, tareas que un tool/IA podría hacer, funciones que un proveedor externo manejaría mejor.</p>
+      <textarea id="q2" placeholder="Describe brevemente..."></textarea>
+    </div>
+    <div class="q-item">
+      <p class="q-label">3. ¿Dónde hay duplicidades o capacidad subutilizada?</p>
+      <p class="q-hint">Funciones que otro ya hace, tiempo disponible sin trabajo claro, solapamientos con otras áreas.</p>
+      <textarea id="q3" placeholder="Describe brevemente..."></textarea>
+    </div>
+  </div>
+
+  <button class="save-btn" id="saveBtn" onclick="savePerson()">Guardar y continuar →</button>
+</div>
+
+<!-- SCREEN 4: CONFIRMATION -->
+<div id="screen-confirm" class="screen">
+  <div class="confirm-screen">
+    <div class="confirm-icon">✅</div>
+    <h2>¡Equipo completado!</h2>
+    <p>Registraste todas las personas de tu equipo.<br>Los datos ya están en el sistema. Gracias por tu tiempo.</p>
+    <button onclick="goTo('leaders')">Volver al inicio</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhn7jGhaJiTnGV8kHrtDnshIqjqF_YjFflMmHoYGKBPQjdER-uUrRzuyXhNGNOlrpvJg/exec";
+
+const TEAMS = [
+  { team: "ADMIN",       leader: "Ingrid Payares",             people: ["Danna Guzman Gomez","Ingrid Payares","Luis Alberto Rodríguez"] },
+  { team: "COMERCIAL",   leader: "Gerardo Vilchis",            people: ["Augusto Rey","Fabian Leonardo Rojas Espitia","Gerardo Vilchis","Juan Carlos Pardo","Maria Catalina Ruge Castro","Valentin Sierra Arias"] },
+  { team: "DATOS",       leader: "Wendy Dayana Sanchez Roldan",people: ["Cristian Chica"] },
+  { team: "DISEÑO",      leader: "Edinson Loaiza Diaz",        people: ["Edinson Loaiza Diaz","Maria Camila Cuastumal Puentes"] },
+  { team: "OPERACIONES", leader: "Wendy Dayana Sanchez Roldan",people: ["Juan Nicolas Torres Gonzalez","Luis Daniel Idarraga Zea","Wendy Dayana Sanchez Roldan"] },
+  { team: "PRODUCTO",    leader: "Pablo Pastrana Vega",        people: ["Pablo Pastrana Vega","Uriel"] },
+  { team: "TI",          leader: "Andres Laverde Perez",       people: ["Andres Laverde Perez","Diego Nicolas Ramirez Maldonado","Sebastián Castiblanco"] }
+];
+
+const CATEGORIES = [
+  "Producto / Innovación",
+  "Tecnología / Datos",
+  "Operación / Soporte",
+  "Comercial / Revenue",
+  "Marketing / Marca",
+  "Admin / G&A",
+  "Otra (especificar)"
+];
+
+// State
+let currentTeamIdx = null;
+let currentPersonIdx = null;
+let completed = {}; // { "TEAM|person": true }
+let activityCount = 0;
+
+// ── NAVIGATION ──────────────────────────────────────────
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (screen === 'leaders') {
+    renderLeaders();
+    document.getElementById('screen-leaders').classList.add('active');
+  } else if (screen === 'team') {
+    renderTeam();
+    document.getElementById('screen-team').classList.add('active');
+  } else if (screen === 'form') {
+    renderForm();
+    document.getElementById('screen-form').classList.add('active');
+  } else if (screen === 'confirm') {
+    document.getElementById('screen-confirm').classList.add('active');
+  }
+}
+
+// ── SCREEN 1 ─────────────────────────────────────────────
+function renderLeaders() {
+  const grid = document.getElementById('leaderGrid');
+  grid.innerHTML = '';
+  TEAMS.forEach((t, i) => {
+    const doneCount = t.people.filter(p => completed[`${t.team}|${p}`]).length;
+    const allDone = doneCount === t.people.length;
+    const card = document.createElement('div');
+    card.className = 'leader-card' + (allDone ? ' done' : '');
+    card.innerHTML = `
+      <div class="lc-left">
+        <div class="lc-team">${t.team}</div>
+        <div class="lc-name">${t.leader}</div>
+        <div class="lc-count">${t.people.length} persona${t.people.length>1?'s':''}</div>
+      </div>
+      <div class="lc-badge">${allDone ? '✓ Completo' : doneCount + ' / ' + t.people.length}</div>`;
+    card.onclick = () => { currentTeamIdx = i; goTo('team'); };
+    grid.appendChild(card);
+  });
+}
+
+// ── SCREEN 2 ─────────────────────────────────────────────
+function renderTeam() {
+  const t = TEAMS[currentTeamIdx];
+  document.getElementById('teamTitle').textContent = `Equipo ${t.team}`;
+  document.getElementById('teamSubtitle').textContent = `Líder: ${t.leader}`;
+  const doneCount = t.people.filter(p => completed[`${t.team}|${p}`]).length;
+  const pct = Math.round((doneCount / t.people.length) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${doneCount} de ${t.people.length} personas completadas`;
+
+  const list = document.getElementById('personList');
+  list.innerHTML = '';
+  t.people.forEach((p, i) => {
+    const done = completed[`${t.team}|${p}`];
+    const item = document.createElement('div');
+    item.className = 'person-item' + (done ? ' done' : '');
+    item.innerHTML = `<span class="pi-name">${p}</span><span class="pi-status ${done?'done':'pending'}">${done?'✓ Listo':'Pendiente'}</span>`;
+    item.onclick = () => { currentPersonIdx = i; goTo('form'); };
+    list.appendChild(item);
+  });
+}
+
+// ── SCREEN 3 ─────────────────────────────────────────────
+function renderForm() {
+  const t = TEAMS[currentTeamIdx];
+  const person = t.people[currentPersonIdx];
+  document.getElementById('formPersonName').textContent = person;
+  document.getElementById('formTeamName').textContent = `Equipo ${t.team} · ${t.leader}`;
+  document.getElementById('q1').value = '';
+  document.getElementById('q2').value = '';
+  document.getElementById('q3').value = '';
+
+  activityCount = 0;
+  document.getElementById('activitiesContainer').innerHTML = '';
+  addActivity();
+  addActivity();
+  addActivity();
+  updatePctSum();
+  updateAddBtn();
+}
+
+function addActivity() {
+  if (activityCount >= 5) return;
+  activityCount++;
+  const n = activityCount;
+  const container = document.getElementById('activitiesContainer');
+  const div = document.createElement('div');
+  div.className = 'activity-block';
+  div.id = `act-${n}`;
+  div.innerHTML = `
+    <div class="act-num">Actividad ${n}</div>
+    ${n > 3 ? `<button class="remove-act" onclick="removeActivity(${n})" title="Eliminar">×</button>` : ''}
+    <div class="field-group">
+      <label>Nombre de la actividad</label>
+      <input type="text" id="act-name-${n}" placeholder="Ej: Seguimiento de pipeline comercial" />
+    </div>
+    <div class="field-group">
+      <label>Categoría</label>
+      <select id="act-cat-${n}" onchange="toggleCustom(${n})">
+        <option value="">Selecciona una categoría…</option>
+        ${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <div class="custom-cat" id="custom-cat-${n}">
+        <input type="text" id="act-custom-${n}" placeholder="Nombre de la categoría personalizada" />
+      </div>
+    </div>
+    <div class="field-group">
+      <label>% de dedicación semanal</label>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" step="10" value="20" id="act-pct-${n}" oninput="updateSliderVal(${n}); updatePctSum();" />
+        <span class="slider-val" id="act-pct-val-${n}">20%</span>
+      </div>
+    </div>
+    <div class="field-group">
+      <label>Descripción breve</label>
+      <textarea id="act-desc-${n}" placeholder="¿En qué consiste esta actividad concretamente?"></textarea>
+    </div>`;
+  container.appendChild(div);
+  updatePctSum();
+  updateAddBtn();
+}
+
+function removeActivity(n) {
+  const el = document.getElementById(`act-${n}`);
+  if (el) el.remove();
+  activityCount--;
+  renumberActivities();
+  updatePctSum();
+  updateAddBtn();
+}
+
+function renumberActivities() {
+  const blocks = document.querySelectorAll('.activity-block');
+  activityCount = blocks.length;
+  blocks.forEach((b, i) => {
+    b.querySelector('.act-num').textContent = `Actividad ${i+1}`;
+  });
+}
+
+function toggleCustom(n) {
+  const sel = document.getElementById(`act-cat-${n}`).value;
+  const div = document.getElementById(`custom-cat-${n}`);
+  div.style.display = sel === 'Otra (especificar)' ? 'block' : 'none';
+}
+
+function updateSliderVal(n) {
+  const v = document.getElementById(`act-pct-${n}`).value;
+  document.getElementById(`act-pct-val-${n}`).textContent = v + '%';
+}
+
+function updatePctSum() {
+  const blocks = document.querySelectorAll('.activity-block');
+  let total = 0;
+  blocks.forEach(b => {
+    const id = b.id.replace('act-','');
+    const el = document.getElementById(`act-pct-${id}`);
+    if (el) total += parseInt(el.value) || 0;
+  });
+  const box = document.getElementById('pctSumBox');
+  const val = document.getElementById('pctSumVal');
+  val.textContent = total + '%';
+  box.className = 'pct-sum ' + (total === 100 ? 'ok' : 'error');
+}
+
+function updateAddBtn() {
+  const btn = document.getElementById('addActBtn');
+  if (activityCount >= 5) {
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = 'block';
+    btn.textContent = `+ Agregar actividad (${activityCount}/5)`;
+  }
+}
+
+// ── SAVE ─────────────────────────────────────────────────
+async function savePerson() {
+  const t = TEAMS[currentTeamIdx];
+  const person = t.people[currentPersonIdx];
+
+  // Collect activities
+  const blocks = document.querySelectorAll('.activity-block');
+  if (blocks.length < 3) { showToast('Debes registrar al menos 3 actividades.', 'error'); return; }
+
+  let total = 0;
+  let activities = [];
+  let valid = true;
+
+  blocks.forEach((b, idx) => {
+    const id = b.id.replace('act-','');
+    const name = (document.getElementById(`act-name-${id}`)?.value || '').trim();
+    const cat = (document.getElementById(`act-cat-${id}`)?.value || '').trim();
+    const custom = (document.getElementById(`act-custom-${id}`)?.value || '').trim();
+    const pct = parseInt(document.getElementById(`act-pct-${id}`)?.value) || 0;
+    const desc = (document.getElementById(`act-desc-${id}`)?.value || '').trim();
+
+    if (!name) { showToast(`Actividad ${idx+1}: falta el nombre.`, 'error'); valid = false; return; }
+    if (!cat) { showToast(`Actividad ${idx+1}: selecciona una categoría.`, 'error'); valid = false; return; }
+    if (cat === 'Otra (especificar)' && !custom) { showToast(`Actividad ${idx+1}: escribe el nombre de la categoría personalizada.`, 'error'); valid = false; return; }
+
+    total += pct;
+    activities.push({ num: idx+1, name, cat, custom: cat === 'Otra (especificar)' ? custom : '', pct, desc });
+  });
+
+  if (!valid) return;
+  if (total !== 100) { showToast('La suma de porcentajes debe ser exactamente 100%.', 'error'); return; }
+
+  const q1 = document.getElementById('q1').value.trim();
+  const q2 = document.getElementById('q2').value.trim();
+  const q3 = document.getElementById('q3').value.trim();
+
+  if (!q1 || !q2 || !q3) { showToast('Completa las 3 preguntas estratégicas.', 'error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  const ts = new Date().toISOString();
+
+  const rows = activities.map((a, i) => ({
+    timestamp: ts,
+    lider: t.leader,
+    equipo: t.team,
+    persona: person,
+    actividad_num: a.num,
+    actividad_nombre: a.name,
+    categoria: a.cat,
+    categoria_custom: a.custom,
+    porcentaje: a.pct,
+    descripcion: a.desc,
+    q1: i === 0 ? q1 : '',
+    q2: i === 0 ? q2 : '',
+    q3: i === 0 ? q3 : ''
+  }));
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows })
+    });
+
+    completed[`${t.team}|${person}`] = true;
+    showToast('¡Guardado exitosamente!', 'success');
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = 'Guardar y continuar →';
+      const allDone = t.people.every(p => completed[`${t.team}|${p}`]);
+      if (allDone) goTo('confirm');
+      else goTo('team');
+    }, 800);
+
+  } catch(e) {
+    showToast('Error al guardar. Revisa tu conexión.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Guardar y continuar →';
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+renderLeaders();
+</script>
+</body>
+</html>
